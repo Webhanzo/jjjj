@@ -1,4 +1,3 @@
-
 // src/lib/firebase/database.ts
 import {
   get,
@@ -47,7 +46,7 @@ export async function updateDocument(path: string, data: any) {
     }
 }
   
-// --- Legacy Functions to be updated/removed ---
+// --- Specific Data Fetching Functions ---
 export async function getHeaderData() {
   return getDocument<{ logo: string; width?: number; height?: number; }>('header');
 }
@@ -56,10 +55,6 @@ export async function getFooterData() {
     return getDocument<{ about: string; facebook: string; instagram: string; logo: string; phone1: string; phone2: string; whatsapp: string; width?: number; height?: number; }>('footer');
 }
   
-export async function getHomeImage() {
-    return getDocument<string>('homeImage');
-}
-    
 export async function getSpecialAd() {
     return getDocument<{ image: string; link: string; text: string; visible: boolean; adWidth?: number; adHeight?: number; adPosition?: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right' | 'center'; }>('specialAds');
 }
