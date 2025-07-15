@@ -34,4 +34,10 @@ export type Order = {
   landmark?: string;
   items: CartItem[];
   timestamp: Date;
-}
+};
+
+export type AdminUser = {
+  id: string;
+  email: string;
+  password?: string; // Password should not be stored in the frontend state
+};

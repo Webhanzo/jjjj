@@ -1,52 +1,44 @@
 // src/lib/firebase/database.ts
-import {
-  get,
-  getDatabase,
-  push,
-  ref,
-  remove,
-  serverTimestamp,
-  set,
-  update,
-} from 'firebase/database';
-import type { ContactMessage, Order, Product } from '../types';
-import { app } from './init';
+import type { ContactMessage, Order, Product, AdminUser } from '../types';
+import { localDatabase } from '../local-data';
 
-const db = getDatabase(app);
+function toObject<T>(arr: T[], key: keyof T): { [key: string]: T } {
+  return arr.reduce((acc, item) => {
+    const itemKey = item[key] as string;
+    acc[itemKey] = item;
+    return acc;
+  }, {} as { [key: string]: T });
+}
 
 // --- Generic Functions ---
 
 export async function getDocument<T>(path: string): Promise<T | null> {
     try {
-      const snapshot = await get(ref(db, path));
-      if (snapshot.exists()) {
-        return snapshot.val() as T;
+      // Simulate fetching from a local object based on path
+      const pathParts = path.split('/');
+      let data: any = localDatabase;
+      for (const part of pathParts) {
+        if (data && typeof data === 'object' && part in data) {
+          data = data[part];
+        } else {
+          return null; // Path not found
+        }
       }
-      return null;
+      return data as T;
     } catch (error) {
-      console.error(`Error getting document from ${path}:`, error);
-      // In a real app, you might want to throw the error or handle it differently
+      console.error(`Error getting document from local data at ${path}:`, error);
       return null;
     }
 }
   
-export async function updateDocument(path: string, data: any) {
-    try {
-      const docRef = ref(db, path);
-      // If the path is to the root of a collection-like object, `update` is better.
-      // If it's a single value (like homeImage), `set` is more appropriate.
-      if (typeof data === 'object' && !Array.isArray(data) && data !== null) {
-        await update(docRef, data);
-      } else {
-        await set(docRef, data);
-      }
-    } catch (error) {
-      console.error(`Error updating document at ${path}:`, error);
-      throw new Error(`Failed to update document at ${path}.`);
-    }
+export async function updateDocument(path: string, data: any): Promise<void> {
+    console.warn(`Local data mode: updateDocument for path "${path}" is not implemented. Data will not be persisted.`);
+    // In a real local-only app, you might update the in-memory object,
+    // but it won't persist across page reloads without additional logic (like localStorage).
+    return Promise.resolve();
 }
   
-// --- Legacy Functions to be updated/removed ---
+// --- Legacy Functions now read from local data ---
 export async function getHeaderData() {
   return getDocument<{ logo: string; width?: number; height?: number; }>('header');
 }
@@ -64,27 +56,14 @@ export async function getSpecialAd() {
 }
 
 
-// --- Product Functions ---
-
-function processProduct(productData: any, id: string): Product {
-    const price = Number(productData.price) || 0;
-    const slug = (productData.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    return {
-        ...productData,
-        id,
-        slug,
-        price: isNaN(price) ? 0 : price,
-        featured: productData.featured ?? false,
-        featured2: productData.featured2 ?? false,
-    };
-}
-
+// --- Product Functions now read from local data ---
 
 export async function getProducts(): Promise<Product[]> {
   const productsData = await getDocument<{ [key: string]: any }>('products');
   if (!productsData) return [];
-
-  return Object.entries(productsData).map(([id, productData]) => processProduct(productData, id));
+  // The local data is already an array, so just return it.
+  // If it were an object, you'd map over it.
+  return localDatabase.products as Product[];
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
@@ -94,53 +73,54 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
-    const productData = await getDocument<any>(`products/${id}`);
-    if (!productData) return null;
-    return processProduct(productData, id);
+    const products = await getProducts();
+    return products.find(p => p.id === id) || null;
 }
 
 
-export async function addProduct(product: Omit<Product, 'id' | 'slug' | 'timestamp'>) {
-    const slug = product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-    const newProductRef = push(ref(db, 'products'));
-    await set(newProductRef, {
-        ...product,
-        price: Number(product.price),
-        featured: product.featured || false,
-        featured2: product.featured2 || false,
-        timestamp: serverTimestamp(),
-    });
-    return newProductRef.key;
+export async function addProduct(product: Omit<Product, 'id' | 'slug' | 'timestamp'>): Promise<string | null> {
+    console.warn(`Local data mode: addProduct is not implemented. Data will not be persisted.`);
+    return Promise.resolve(null);
 }
 
-export async function updateProduct(productId: string, product: Partial<Product>) {
-  const productRef = ref(db, `products/${productId}`);
-  await update(productRef, {
-      ...product,
-      price: Number(product.price),
-  });
+export async function updateProduct(productId: string, product: Partial<Product>): Promise<void> {
+    console.warn(`Local data mode: updateProduct for ID "${productId}" is not implemented. Data will not be persisted.`);
+    return Promise.resolve();
 }
 
-export async function deleteProduct(productId: string) {
-  const productRef = ref(db, `products/${productId}`);
-  await remove(productRef);
+export async function deleteProduct(productId: string): Promise<void> {
+    console.warn(`Local data mode: deleteProduct for ID "${productId}" is not implemented. Data will not be persisted.`);
+    return Promise.resolve();
+}
+
+// --- User Functions ---
+export async function verifyUserCredentials(email: string, pass: string): Promise<AdminUser | null> {
+    const users = localDatabase.users as AdminUser[];
+    const user = users.find(u => u.email === email && u.password === pass);
+    if (user) {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+    }
+    return null;
+}
+
+export async function addUser(user: Omit<AdminUser, 'id'>): Promise<string | null> {
+    console.warn(`Local data mode: addUser is not implemented. Data will not be persisted.`);
+    return Promise.resolve(null);
 }
 
 // --- Message Functions ---
 
-export async function addMessage(message: Omit<ContactMessage, 'id' | 'createdAt'>) {
-    const newMessageRef = push(ref(db, 'messages'));
-    await set(newMessageRef, {
-        ...message,
-        createdAt: serverTimestamp(),
-    });
+export async function addMessage(message: Omit<ContactMessage, 'id' | 'createdAt'>): Promise<void> {
+    console.warn(`Local data mode: addMessage is not implemented. Data will not be persisted.`);
+    return Promise.resolve();
 }
 
 export async function getMessages(): Promise<ContactMessage[]> {
-    const messagesData = await getDocument<{ [key: string]: any }>('messages');
+    const messagesData = localDatabase.messages;
     if (!messagesData) return [];
 
-    return Object.entries(messagesData).map(([id, msgData]) => ({
+    return Object.entries(messagesData).map(([id, msgData]: [string, any]) => ({
         id,
         name: msgData.name,
         phone: msgData.phone,
@@ -152,20 +132,17 @@ export async function getMessages(): Promise<ContactMessage[]> {
 
 // --- Order Functions ---
 
-export async function addOrder(order: Omit<Order, 'id' | 'timestamp'>) {
-    const newOrderRef = push(ref(db, 'orders'));
-    await set(newOrderRef, {
-        ...order,
-        timestamp: serverTimestamp(),
-    });
+export async function addOrder(order: Omit<Order, 'id' | 'timestamp'>): Promise<void> {
+    console.warn(`Local data mode: addOrder is not implemented. Data will not be persisted.`);
+    return Promise.resolve();
 }
 
 
 export async function getOrders(): Promise<Order[]> {
-    const ordersData = await getDocument<{ [key: string]: any }>('orders');
+    const ordersData = localDatabase.orders;
     if (!ordersData) return [];
 
-    return Object.entries(ordersData).map(([id, orderData]) => ({
+    return Object.entries(ordersData).map(([id, orderData]: [string, any]) => ({
         id,
         fullName: orderData.fullName,
         phoneNumber: orderData.phoneNumber,
