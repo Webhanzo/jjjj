@@ -57,13 +57,26 @@ export default function SettingsPage() {
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
     defaultValues: {
-      adVisible: false,
-      adWidth: 256,
-      adPosition: 'bottom-left',
+      headerLogo: '',
       headerLogoWidth: 40,
       headerLogoHeight: 40,
+      footerLogo: '',
       footerLogoWidth: 50,
       footerLogoHeight: 50,
+      homeImage: '',
+      footerAbout: '',
+      phone1: '',
+      phone2: '',
+      facebook: '',
+      instagram: '',
+      whatsapp: '',
+      adImage: '',
+      adLink: '',
+      adText: '',
+      adVisible: false,
+      adWidth: 256,
+      adHeight: undefined, // Start as undefined to allow placeholder to show
+      adPosition: 'bottom-left',
     },
   });
 
@@ -141,7 +154,7 @@ export default function SettingsPage() {
                 text: values.adText,
                 visible: values.adVisible,
                 adWidth: values.adWidth,
-                adHeight: values.adHeight,
+                adHeight: values.adHeight || null, // Store null if empty
                 adPosition: values.adPosition,
             })
         ]);
@@ -261,7 +274,7 @@ export default function SettingsPage() {
                             <FormItem><FormLabel>عرض الإعلان (بكسل)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                         )}/>
                         <FormField control={form.control} name="adHeight" render={({ field }) => (
-                            <FormItem><FormLabel>طول الإعلان (بكسل، اختياري)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                            <FormItem><FormLabel>طول الإعلان (بكسل، اختياري)</FormLabel><FormControl><Input type="number" placeholder="مثال: 300" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>
                         )}/>
                     </div>
                      <FormField control={form.control} name="adPosition" render={({ field }) => (
