@@ -200,3 +200,14 @@ export async function verifyUserCredentials(email: string, pass: string): Promis
         return false;
     }
 }
+
+export async function addUser(user: Omit<AdminUser, 'id'>) {
+    try {
+        const newUserRef = push(ref(db, 'users'));
+        await set(newUserRef, user);
+        return newUserRef.key;
+    } catch (error) {
+        console.error("Error adding user:", error);
+        throw new Error("Failed to add user.");
+    }
+}

@@ -35,3 +35,9 @@ export type Order = {
   items: CartItem[];
   timestamp: Date;
 }
+
+export type AdminUser = {
+  id?: string;
+  email: string;
+  password?: string;
+};

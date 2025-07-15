@@ -11,9 +11,9 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, Terminal, UserPlus } from 'lucide-react';
+import { LogIn, UserPlus, Terminal } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { verifyUserCredentials } from '@/lib/firebase/database';
+import { addUser } from '@/lib/firebase/database';
 import Link from 'next/link';
 
 const formSchema = z.object({
@@ -21,7 +21,7 @@ const formSchema = z.object({
   password: z.string().min(6, { message: 'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل.' }),
 });
 
-export default function AdminLoginPage() {
+export default function AdminRegisterPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
@@ -30,8 +30,8 @@ export default function AdminLoginPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: 'yazan.admin@hanzo.com',
-      password: '123456789',
+      email: '',
+      password: '',
     },
   });
 
@@ -40,21 +40,15 @@ export default function AdminLoginPage() {
     setError(null);
     
     try {
-      const isValid = await verifyUserCredentials(values.email, values.password);
-
-      if (isValid) {
-        sessionStorage.setItem('isAdminAuthenticated', 'true');
-        toast({
-          title: "تم تسجيل الدخول بنجاح!",
-          description: "مرحباً بك في لوحة التحكم.",
-          className: 'bg-accent text-accent-foreground border-0',
-        });
-        router.push('/admin/dashboard');
-      } else {
-        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
-      }
+      await addUser(values);
+      toast({
+        title: "تم إنشاء الحساب بنجاح!",
+        description: "يمكنك الآن تسجيل الدخول باستخدام بياناتك الجديدة.",
+        className: 'bg-accent text-accent-foreground border-0',
+      });
+      router.push('/admin/login');
     } catch (e: any) {
-        setError('حدث خطأ أثناء محاولة تسجيل الدخول. يرجى المحاولة مرة أخرى.');
+        setError('حدث خطأ أثناء محاولة إنشاء الحساب. يرجى المحاولة مرة أخرى.');
         console.error(e);
     } finally {
         setLoading(false);
@@ -65,16 +59,16 @@ export default function AdminLoginPage() {
     <div className="container mx-auto flex min-h-[calc(100vh-200px)] max-w-7xl items-center justify-center px-4 py-16 md:px-6 lg:py-24">
       <Card className="mx-auto w-full max-w-md">
         <CardHeader>
-          <CardTitle className="font-headline text-center text-3xl font-bold">لوحة تحكم المشرف</CardTitle>
+          <CardTitle className="font-headline text-center text-3xl font-bold">إنشاء حساب مشرف جديد</CardTitle>
           <CardDescription className="text-center">
-            الرجاء تسجيل الدخول للمتابعة
+            أدخل البيانات لإنشاء حساب جديد
           </CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
             <Alert variant="destructive" className="mb-4">
                  <Terminal className="h-4 w-4" />
-                <AlertTitle>خطأ في تسجيل الدخول</AlertTitle>
+                <AlertTitle>خطأ في إنشاء الحساب</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -107,23 +101,23 @@ export default function AdminLoginPage() {
                 )}
               />
               <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                {loading ? 'جارٍ تسجيل الدخول...' : 'تسجيل الدخول'}
-                <LogIn className="ms-2 h-5 w-5" />
+                {loading ? 'جارٍ الإنشاء...' : 'إنشاء حساب'}
+                <UserPlus className="ms-2 h-5 w-5" />
               </Button>
             </form>
           </Form>
         </CardContent>
          <CardFooter className="flex-col gap-4">
-             <div className="text-center text-sm">
-                ليس لديك حساب؟{' '}
+            <div className="text-center text-sm">
+                لديك حساب بالفعل؟{' '}
                 <Button variant="link" asChild className="p-0">
-                    <Link href="/admin/register">
-                        إنشاء حساب جديد
-                        <UserPlus className="ms-1 h-4 w-4" />
+                    <Link href="/admin/login">
+                        تسجيل الدخول
+                        <LogIn className="ms-1 h-4 w-4" />
                     </Link>
                 </Button>
             </div>
-            <p className="text-xs text-muted-foreground mx-auto">
+             <p className="text-xs text-muted-foreground mx-auto">
                 هذه الصفحة مخصصة للمشرفين فقط.
             </p>
         </CardFooter>
