@@ -1,3 +1,4 @@
+
 // src/lib/firebase/init.ts
 import { getApp, getApps, initializeApp, type FirebaseOptions } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
@@ -14,12 +15,34 @@ const firebaseConfig: FirebaseOptions = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-// We only initialize the app if no app has been initialized yet.
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
+// Function to initialize Firebase and return the app instance
+function initializeFirebaseApp() {
+  // Check if all required environment variables are present
+  const requiredConfigKeys: (keyof FirebaseOptions)[] = ['apiKey', 'authDomain', 'projectId', 'databaseURL'];
+  const missingKeys = requiredConfigKeys.filter(key => !firebaseConfig[key]);
 
-const auth = getAuth(app);
-const db = getDatabase(app);
+  if (missingKeys.length > 0) {
+    console.error(`Firebase configuration is incomplete. Missing keys: ${missingKeys.join(', ')}. Please check your .env file.`);
+    // Return null or throw an error to prevent initialization with incomplete config
+    return null;
+  }
 
+  // Initialize Firebase only if it hasn't been initialized yet
+  if (!getApps().length) {
+    return initializeApp(firebaseConfig);
+  } else {
+    return getApp();
+  }
+}
+
+const app = initializeFirebaseApp();
+
+// Initialize services only if the app was successfully initialized
+const auth = app ? getAuth(app) : null;
+const db = app ? getDatabase(app) : null;
+
+if (!auth || !db) {
+    console.error("Failed to initialize Firebase services. Auth or DB is null.");
+}
 
 export { app, auth, db };
