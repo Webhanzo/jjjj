@@ -15,13 +15,15 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Check for auth state in sessionStorage
     const sessionActive = sessionStorage.getItem('isAdminAuthenticated') === 'true';
     setIsAuthenticated(sessionActive);
 
-    if (!sessionActive && pathname !== '/admin/login') {
+    const isAuthPage = pathname === '/admin/login' || pathname === '/admin/register';
+
+    if (!sessionActive && !isAuthPage) {
       router.push('/admin/login');
     }
+    
     setLoading(false);
   }, [router, pathname]);
 
@@ -44,11 +46,11 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated && pathname !== '/admin/login') {
+  if (!isAuthenticated && (pathname !== '/admin/login' && pathname !== '/admin/register')) {
     return null; // The useEffect hook will handle the redirect.
   }
 
-  if (pathname === '/admin/login') {
+  if (pathname === '/admin/login' || pathname === '/admin/register') {
     return <>{children}</>;
   }
 
