@@ -14,26 +14,12 @@ const firebaseConfig: FirebaseOptions = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
-// A function to check if all required Firebase config values are present.
-const isConfigValid = (config: FirebaseOptions): boolean => {
-    return Object.values(config).every(value => typeof value === 'string' && value.length > 0);
-};
+// Initialize Firebase
+// We only initialize the app if no app has been initialized yet.
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-// Initialize Firebase.
-// We only initialize the app if the config is valid and no app has been initialized yet.
-const app = isConfigValid(firebaseConfig) && !getApps().length
-  ? initializeApp(firebaseConfig)
-  : getApps().length ? getApp() : null;
+const auth = getAuth(app);
+const db = getDatabase(app);
 
-// Conditionally export auth and db. They will be null if the app isn't initialized.
-// Components using these should handle the null case gracefully if necessary.
-const auth = app ? getAuth(app) : null;
-const db = app ? getDatabase(app) : null;
-
-// Log an error if the app could not be initialized.
-// This is helpful for debugging configuration issues.
-if (!app) {
-  console.error("Firebase configuration is invalid or incomplete. Please check your environment variables.");
-}
 
 export { app, auth, db };
