@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -6,35 +7,29 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { LayoutDashboard, LogOut, MessageSquare, Package, FileImage, Settings, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
-import { onAuthStateChanged, signOut, type User } from 'firebase/auth';
-import { auth } from '@/lib/firebase/init';
 
 function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (!currentUser && pathname !== '/admin/login') {
-        router.push('/admin/login');
-      }
-      setLoading(false);
-    });
+    // Check for auth state in sessionStorage
+    const sessionActive = sessionStorage.getItem('isAdminAuthenticated') === 'true';
+    setIsAuthenticated(sessionActive);
 
-    return () => unsubscribe();
+    if (!sessionActive && pathname !== '/admin/login') {
+      router.push('/admin/login');
+    }
+    setLoading(false);
   }, [router, pathname]);
 
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.push('/admin/login');
-    } catch (error) {
-      console.error("Error signing out: ", error);
-    }
+  const handleLogout = () => {
+    sessionStorage.removeItem('isAdminAuthenticated');
+    setIsAuthenticated(false);
+    router.push('/admin/login');
   };
 
   if (loading) {
@@ -49,7 +44,7 @@ function AdminLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!user && pathname !== '/admin/login') {
+  if (!isAuthenticated && pathname !== '/admin/login') {
     return null; // The useEffect hook will handle the redirect.
   }
 

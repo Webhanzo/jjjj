@@ -1,3 +1,4 @@
+
 // src/lib/firebase/database.ts
 import {
   get,
@@ -9,7 +10,7 @@ import {
   set,
   update,
 } from 'firebase/database';
-import type { ContactMessage, Order, Product } from '../types';
+import type { ContactMessage, Order, Product, AdminUser } from '../types';
 import { app } from './init';
 
 const db = getDatabase(app);
@@ -175,4 +176,27 @@ export async function getOrders(): Promise<Order[]> {
         items: orderData.items,
         timestamp: new Date(orderData.timestamp),
     }));
+}
+
+
+// --- Admin User Functions ---
+export async function verifyUserCredentials(email: string, pass: string): Promise<boolean> {
+    try {
+        const usersData = await getDocument<{ [key: string]: AdminUser }>('users');
+        if (!usersData) {
+            console.log("No users found in database.");
+            return false;
+        }
+
+        const user = Object.values(usersData).find(u => u.email === email);
+
+        if (user && user.password === pass) {
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        console.error("Error verifying user credentials:", error);
+        return false;
+    }
 }

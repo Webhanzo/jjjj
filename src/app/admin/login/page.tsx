@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -12,8 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useToast } from '@/hooks/use-toast';
 import { LogIn, Terminal } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase/init';
+import { verifyUserCredentials } from '@/lib/firebase/database';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'الرجاء إدخال بريد إلكتروني صالح.' }),
@@ -29,8 +29,8 @@ export default function AdminLoginPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: 'Yazan.Admin@Hanzo.com',
-      password: 'password123',
+      email: 'yazan.admin@hanzo.com',
+      password: '123456789',
     },
   });
 
@@ -38,30 +38,23 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError(null);
     
-    if (!auth) {
-      setError('فشل تهيئة Firebase. يرجى التحقق من الإعدادات.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
-      toast({
-        title: "تم تسجيل الدخول بنجاح!",
-        description: "مرحباً بك في لوحة التحكم.",
-        className: 'bg-accent text-accent-foreground border-0',
-      });
-      router.push('/admin/dashboard');
-    } catch (authError: any) {
-        if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/wrong-password' || authError.code === 'auth/user-not-found') {
-            setError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
-        } else if (authError.code === 'auth/configuration-not-found') {
-             setError('فشل الاتصال بخدمة المصادقة. يرجى التحقق من إعدادات Firebase وتفعيل خدمة المصادقة.');
-        }
-        else {
-            setError('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.');
-            console.error(authError);
-        }
+      const isValid = await verifyUserCredentials(values.email, values.password);
+
+      if (isValid) {
+        sessionStorage.setItem('isAdminAuthenticated', 'true');
+        toast({
+          title: "تم تسجيل الدخول بنجاح!",
+          description: "مرحباً بك في لوحة التحكم.",
+          className: 'bg-accent text-accent-foreground border-0',
+        });
+        router.push('/admin/dashboard');
+      } else {
+        setError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
+      }
+    } catch (e: any) {
+        setError('حدث خطأ أثناء محاولة تسجيل الدخول. يرجى المحاولة مرة أخرى.');
+        console.error(e);
     } finally {
         setLoading(false);
     }
@@ -106,7 +99,7 @@ export default function AdminLoginPage() {
                   <FormItem>
                     <FormLabel>كلمة المرور</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="******" {...field} disabled={loading} autoFocus />
+                      <Input type="password" placeholder="******" {...field} disabled={loading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
