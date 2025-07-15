@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: 'Yazan.Admin@Hanzo.com',
-      password: '',
+      password: 'password123',
     },
   });
 
@@ -38,6 +38,12 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError(null);
     
+    if (!auth) {
+      setError('فشل تهيئة Firebase. يرجى التحقق من الإعدادات.');
+      setLoading(false);
+      return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
@@ -49,7 +55,10 @@ export default function AdminLoginPage() {
     } catch (authError: any) {
         if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/wrong-password' || authError.code === 'auth/user-not-found') {
             setError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
-        } else {
+        } else if (authError.code === 'auth/configuration-not-found') {
+             setError('فشل الاتصال بخدمة المصادقة. يرجى التحقق من إعدادات Firebase وتفعيل خدمة المصادقة.');
+        }
+        else {
             setError('حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى.');
             console.error(authError);
         }
